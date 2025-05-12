@@ -5,10 +5,9 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.core.window import Window
 from kivymd.app import MDApp
 from kivymd.uix.button import MDRaisedButton, MDFlatButton
-from kivymd.uix.dialog import MDDialog
 from kivymd.uix.label import MDLabel
 from kivymd.uix.textfield import MDTextField
-from plyer import filechooser, storagepath
+from plyer import filechooser
 from datetime import datetime
 import sqlite3
 import os
@@ -32,10 +31,8 @@ def init_db():
     conn.commit()
     conn.close()
 
-
 class RegisterContent(BoxLayout):
     pass
-
 
 Builder.load_string('''
 <RegisterContent>:
@@ -52,32 +49,31 @@ Builder.load_string('''
         halign: "center"  # Center-aligned title
         size_hint_y: None
         height: dp(50)  # Space for title
-    
+
     MDTextField:
         id: name_input
         hint_text: "Enter Name"
+        size_hint_y: None
+        height: dp(40)
 
     MDTextField:
         id: emp_id_input
         hint_text: "Enter Employee ID"
+        size_hint_y: None
+        height: dp(40)
 
     MDTextField:
         id: phone_input
         hint_text: "Enter Phone Number"
-
-    MDRaisedButton:
-        id: select_fp_btn
-        text: "Select Fingerprint Image"
-        on_release: app.select_fingerprint(self)
+        size_hint_y: None
+        height: dp(40)
 
     MDRaisedButton:
         id: submit_btn
         text: "Submit"
         on_release: app.register_user(self)
+
 ''')
-
-
-
 
 class FingerprintApp(MDApp):
     def build(self):
@@ -86,21 +82,21 @@ class FingerprintApp(MDApp):
         init_db()
 
         self.fingerprint_path = None
-        self.dialog = None
 
-        
-        self.request_permissions()
-
+        # Main layout
         layout = BoxLayout(orientation='vertical', padding=20, spacing=20)
 
-        register_btn = MDRaisedButton(text="Register", size_hint=(1, 0.1))
-        register_btn.bind(on_press=self.open_register_popup)
-        layout.add_widget(register_btn)
+        # Register User Form
+        self.register_content = RegisterContent()
 
-        verify_btn = MDRaisedButton(text="Verify", size_hint=(1, 0.1))
+        layout.add_widget(self.register_content)
+
+        # Verification buttons
+        verify_btn = MDRaisedButton(text="Verify Fingerprint", size_hint=(1, 0.1))
         verify_btn.bind(on_press=self.open_verify_popup)
         layout.add_widget(verify_btn)
 
+        # Result label for verification
         self.result_label = MDLabel(
             text="Verification Status will be shown here.",
             halign="center",
@@ -110,58 +106,29 @@ class FingerprintApp(MDApp):
 
         return layout
 
-    def request_permissions(self):
-        """Request permission for reading/writing storage."""
-        from android.permissions import request_permissions, Permission
-        request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE])
-
     def open_register_popup(self, instance):
-        self.dialog_content = RegisterContent()
-        self.name_input = self.dialog_content.ids.name_input
-        self.emp_id_input = self.dialog_content.ids.emp_id_input
-        self.phone_input = self.dialog_content.ids.phone_input
-        self.select_fp_btn = self.dialog_content.ids.select_fp_btn
-
-        self.dialog = MDDialog(
-            title="Register User",
-            type="custom",
-            content_cls=self.dialog_content,
-            buttons=[
-                MDFlatButton(text="Close", on_release=lambda x: self.dialog.dismiss())
-            ],
-        )
-        self.dialog.open()
-
-    def select_fingerprint(self, instance):
-        filechooser.open_file(
-            on_selection=self.set_fingerprint_path,
-            filters=["*.png", "*.jpg", "*.jpeg", "*.bmp"]
-        )
-
-    def set_fingerprint_path(self, selection):
-        if selection:
-            self.fingerprint_path = selection[0]
-            self.select_fp_btn.text = f"Selected: {os.path.basename(self.fingerprint_path)}"
+        self.name_input = self.register_content.ids.name_input
+        self.emp_id_input = self.register_content.ids.emp_id_input
+        self.phone_input = self.register_content.ids.phone_input
 
     def register_user(self, instance):
         name = self.name_input.text.strip()
         emp_id = self.emp_id_input.text.strip()
         phone = self.phone_input.text.strip()
 
-        if not all([name, emp_id, phone, self.fingerprint_path]):
-            self.show_popup("Error", "Please fill all fields and select a fingerprint.")
+        if not all([name, emp_id, phone]):
+            self.show_popup("Error", "Please fill all fields.")
             return
 
         try:
-            
             db_path = App.get_running_app().user_data_dir + '/users.db'
             conn = sqlite3.connect(db_path)
             c = conn.cursor()
-            c.execute("INSERT INTO users (name, emp_id, phone, fingerprint_path) VALUES (?, ?, ?, ?)",
-                      (name, emp_id, phone, self.fingerprint_path))
+            c.execute("INSERT INTO users (name, emp_id, phone, fingerprint_path) VALUES (?, ?, ?, ?) ",
+                      (name, emp_id, phone, ""))
             conn.commit()
             conn.close()
-            self.dialog.dismiss()
+
             self.show_popup("Success", "User registered successfully.")
         except sqlite3.IntegrityError:
             self.show_popup("Error", "Employee ID already exists.")
@@ -205,9 +172,7 @@ class FingerprintApp(MDApp):
         dialog = MDDialog(
             title=title,
             text=message,
-            buttons=[
-                MDFlatButton(text="Close", on_release=lambda x: dialog.dismiss())
-            ]
+            buttons=[MDFlatButton(text="Close", on_release=lambda x: dialog.dismiss())]
         )
         dialog.open()
 
