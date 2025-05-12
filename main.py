@@ -40,7 +40,7 @@ class RegisterContent(BoxLayout):
 Builder.load_string('''
 <RegisterContent>:
     orientation: 'vertical'
-    spacing: dp(10)
+    spacing: dp(20)  # Add space between elements
     size_hint_y: None
     height: self.minimum_height
     padding: dp(20)
@@ -48,25 +48,37 @@ Builder.load_string('''
     MDTextField:
         id: name_input
         hint_text: "Enter Name"
+        size_hint_y: None
+        height: dp(40)
 
     MDTextField:
         id: emp_id_input
         hint_text: "Enter Employee ID"
+        size_hint_y: None
+        height: dp(40)
 
     MDTextField:
         id: phone_input
         hint_text: "Enter Phone Number"
+        size_hint_y: None
+        height: dp(40)
 
     MDRaisedButton:
         id: select_fp_btn
         text: "Select Fingerprint Image"
+        size_hint_y: None
+        height: dp(50)
         on_release: app.select_fingerprint(self)
 
     MDRaisedButton:
         id: submit_btn
         text: "Submit"
+        size_hint_y: None
+        height: dp(50)
         on_release: app.register_user(self)
 ''')
+
+
 
 class FingerprintApp(MDApp):
     def build(self):
