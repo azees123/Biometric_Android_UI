@@ -8,21 +8,19 @@ from kivymd.uix.button import MDRaisedButton, MDFlatButton
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.label import MDLabel
 from kivymd.uix.textfield import MDTextField
-from plyer import filechooser, storage
+from plyer import filechooser, storagepath
 from datetime import datetime
 import sqlite3
 import os
-from kivy.uix.popup import Popup
-from kivy.uix.spinner import Spinner
-from android.permissions import request_permissions, Permission
-
+from kivy.app import App
 
 Window.size = (400, 700)
 
 DB_PATH = "users.db"
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    db_path = App.get_running_app().user_data_dir + '/users.db'
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS users (
                  id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,7 +68,6 @@ Builder.load_string('''
         on_release: app.register_user(self)
 ''')
 
-
 class FingerprintApp(MDApp):
     def build(self):
         self.title = "Fingerprint Verification"
@@ -79,6 +76,9 @@ class FingerprintApp(MDApp):
 
         self.fingerprint_path = None
         self.dialog = None
+
+        
+        self.request_permissions()
 
         layout = BoxLayout(orientation='vertical', padding=20, spacing=20)
 
@@ -99,8 +99,9 @@ class FingerprintApp(MDApp):
 
         return layout
 
-    def on_start(self):
-
+    def request_permissions(self):
+        """Request permission for reading/writing storage."""
+        from android.permissions import request_permissions, Permission
         request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE])
 
     def open_register_popup(self, instance):
@@ -121,7 +122,6 @@ class FingerprintApp(MDApp):
         self.dialog.open()
 
     def select_fingerprint(self, instance):
-
         filechooser.open_file(
             on_selection=self.set_fingerprint_path,
             filters=["*.png", "*.jpg", "*.jpeg", "*.bmp"]
@@ -142,7 +142,9 @@ class FingerprintApp(MDApp):
             return
 
         try:
-            conn = sqlite3.connect(DB_PATH)
+            
+            db_path = App.get_running_app().user_data_dir + '/users.db'
+            conn = sqlite3.connect(db_path)
             c = conn.cursor()
             c.execute("INSERT INTO users (name, emp_id, phone, fingerprint_path) VALUES (?, ?, ?, ?)",
                       (name, emp_id, phone, self.fingerprint_path))
@@ -164,7 +166,9 @@ class FingerprintApp(MDApp):
                 return
 
             selected_fp = os.path.basename(selection[0])
-            conn = sqlite3.connect(DB_PATH)
+    
+            db_path = App.get_running_app().user_data_dir + '/users.db'
+            conn = sqlite3.connect(db_path)
             c = conn.cursor()
             c.execute("SELECT name, emp_id, fingerprint_path FROM users")
             users = c.fetchall()
