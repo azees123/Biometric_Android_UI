@@ -13,6 +13,7 @@ from datetime import datetime
 import sqlite3
 import os
 from kivy.app import App
+from kivy.utils import platform
 
 Window.size = (400, 700)
 
@@ -45,6 +46,14 @@ Builder.load_string('''
     height: self.minimum_height
     padding: dp(20)
 
+    MDLabel:
+        text: "Register User"
+        halign: "center"
+        theme_text_color: "Primary"
+        font_style: "H6"
+        size_hint_y: None
+        height: self.texture_size[1]
+
     MDTextField:
         id: name_input
         hint_text: "Enter Name"
@@ -76,7 +85,7 @@ class FingerprintApp(MDApp):
 
         self.fingerprint_path = None
         self.dialog = None
-
+        
         self.request_permissions()
 
         layout = BoxLayout(orientation='vertical', padding=20, spacing=20)
@@ -99,30 +108,17 @@ class FingerprintApp(MDApp):
         return layout
 
     def request_permissions(self):
-        """Request permission for reading/writing storage."""
-        from android.permissions import request_permissions, Permission
-        request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE])
+        if platform == "android":
+            from android.permissions import request_permissions, Permission
+            request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE])
 
     def open_register_popup(self, instance):
-        # Create the dialog content, which includes the "Register User" label and form
         self.dialog_content = RegisterContent()
-
-        # Add the centered label to the dialog content
-        label = MDLabel(
-            text="Register User",
-            halign="center",  # This centers the label horizontally
-            theme_text_color="Secondary",  # Optional: for styling
-            size_hint_y=None,  # To let the label adjust its height dynamically
-            height=dp(40)  # Set a fixed height if needed
-        )
-        self.dialog_content.add_widget(label)  # Add the label to the dialog content
-
         self.name_input = self.dialog_content.ids.name_input
         self.emp_id_input = self.dialog_content.ids.emp_id_input
         self.phone_input = self.dialog_content.ids.phone_input
         self.select_fp_btn = self.dialog_content.ids.select_fp_btn
 
-        # Modify the dialog to remove the title and add the centered label instead
         self.dialog = MDDialog(
             type="custom",
             content_cls=self.dialog_content,
